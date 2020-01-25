@@ -1,54 +1,41 @@
-# import the necessary packages
-from shapedetector import ShapeDetector
+import cv2 as cv
+from filled_shape import filled_shape as fs
 import argparse
-import imutils
-import cv2
 
-# construct the argument parse and parse the arguments
-ap = argparse.ArgumentParser()
-ap.add_argument("-i", "--image", required=True,
-	help="path to the input image")
-args = vars(ap.parse_args())
+parser = argparse.ArgumentParser()
+parser.add_argument("--image", "-i", type=argparse.FileType('r'),
+                    dest="image_path", help="Use image as source")
+parser.add_argument("--cam", "-c", dest='cam', default=False, action='store_true', help="Use cam as source")
+parser.add_argument("--debug", default=False, action='store_false', help="show more contours and points")
 
-# load the image and resize it to a smaller factor so that
-# the shapes can be approximated better
-image = cv2.imread(args["image"])
-resized = imutils.resize(image, width=300)
-ratio = image.shape[0] / float(resized.shape[0])
+arg = parser.parse_args()
 
-# convert the resized image to grayscale, blur it slightly,
-# and threshold it
-gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
-blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-thresh = cv2.threshold(blurred, 60, 255, cv2.THRESH_BINARY)[1]
+if arg.cam and arg.image_path is not None:
+    raise Exception("Cam and Image cannot be used simultaneously")
+if arg.cam:
+    cap = cv.VideoCapture(0)
+    while True:
+        ret, frame = cap.read()
+        if ret:
+            fs.capture(frame, arg.debug)
 
-# find contours in the thresholded image and initialize the
-# shape detector
-cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
-	cv2.CHAIN_APPROX_SIMPLE)
-cnts = imutils.grab_contours(cnts)
-sd = ShapeDetector()
+        k = cv.waitKey(30) & 0xFF
+        if k == 27:
+            break
+    cap.release()
+    cv.destroyAllWindows()
+elif arg.image_path is not None:
+    frame = cv.imread(arg.image_path.name)
+    all_line_coords, all_shape_coords = fs.capture(frame, arg.debug)
+
+	# construct_graph(all_line_coords, all_shape_coords)
+    cv.waitKey(0)
+    cv.destroyAllWindows()
+else:
+    parser.parse_args(['--help'])
 
 
-# loop over the contours
-for c in cnts:
-	# compute the center of the contour, then detect the name of the
-	# shape using only the contour
-	M = cv2.moments(c)
-	cX = int((M["m10"] / (M["m00"] + 1e-7)) * ratio)
-	cY = int((M["m01"] / (M["m00"] + 1e-1)) * ratio)
-	shape = sd.detect(c)
+# def construct_graph(all_line_coords, all_shape_coords):
 
-	# multiply the contour (x, y)-coordinates by the resize ratio,
-	# then draw the contours and the name of the shape on the image
-	c = c.astype("float")
-	c *= ratio
-	c = c.astype("int")
-	cv2.drawContours(image, [c], -1, (0, 255, 0), 2)
-	cv2.putText(image, shape, (cX, cY), cv2.FONT_HERSHEY_SIMPLEX,
-		0.5, (255, 255, 255), 2)
 
-	cv2.imshow("Image", image)
-	cv2.waitKey(0)
-
-cv2.destroyAllWindows()
+# def find_closest_shape_to_line():
