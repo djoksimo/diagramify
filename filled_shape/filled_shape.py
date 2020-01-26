@@ -12,7 +12,8 @@ class FilledShape:
     def gen_uuid(self):
         return uuid.uuid1()
 
-    def detect(self, contour, debug):
+    def detect(self, contour, debug, id):
+        # id = self.gen_uuid()
         shape = "undefined"
         epsilon = (0.03 * cv.arcLength(contour, True)) 
         approx = cv.approxPolyDP(contour, epsilon, True)
@@ -38,8 +39,8 @@ class FilledShape:
         else:
             return
 
-        cv.putText(self.img, shape + number, (x, y), font, 1, (255, 123, 255), 1, cv.LINE_AA)
-        return [self.gen_uuid(), x, y]
+        cv.putText(self.img, str(id), (x, y), font, 1, (255, 123, 23), 1, cv.LINE_AA)
+        return [id, shape, x, y]
         
 
 
@@ -87,7 +88,7 @@ class FilledShape:
             # prev_coords = [lines[x][0][0], lines[x][0][1]]
 
             for x1,y1,x2,y2 in lines[x]:
-                print('mosss: ', lines[x])
+                # print('mosss: ', lines[x])
                 line_coords.append([x1, y1])
 
                 # if abs(x1 - prev_coords[0]) <= 10:
@@ -122,7 +123,7 @@ class FilledShape:
             else:
                 temp_group.append([temp_x, temp_y])
                 cv.putText(self.img, "group", (temp_x, temp_y), font, 1, (255, 123, 255), 1, cv.LINE_AA)
-                all_groups.append(temp_group)
+                all_groups.append([self.gen_uuid(), temp_group])
                 temp_group = []
 
         return all_groups
@@ -131,17 +132,19 @@ class FilledShape:
 
 def capture(frame, debug=False):
     img_object = FilledShape(frame)
+    cv.imshow('Original', frame)
+
     _, contours = img_object.preprocessing_image()
 
     all_lines = img_object.process_lines()
 
     all_shapes = []
-    for contour in contours:
-        shape_coords = img_object.detect(contour, debug)
-        all_shapes.append(shape_coords)
+    for id, contour in enumerate(contours):
+        shape_coords = img_object.detect(contour, debug, id)
+
+        if shape_coords is not None:
+            all_shapes.append(shape_coords)
     
+    cv.imshow('Modified', frame)
 
-
-    cv.imshow('Original', frame)
-
-    return all_lines, all_shapes,
+    return all_shapes, all_lines,
