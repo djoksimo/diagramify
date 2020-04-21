@@ -14,3 +14,8 @@ flags:
 "--debug", default=False, # "show more contours and points"
 ```
 
+Disclaimer:
+
+I'm new to python and will re-visit this project in the future.
+
+forks and pull requests are welcome :smile:
